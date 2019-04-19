@@ -4,22 +4,51 @@
 namespace app\api\controller;
 
 //入组模块
+use app\api\model\Checking;
 use think\Controller;
 use think\Db;
 
 class Group extends Controller
 {
-    //入组-判断治疗卡
+    //入组-判断身份证（外地人员）
+    public function field(){
+        if (request()->isPost()){
+            $token = input('Token');
+            $yanzheng = new Checking();
+            $result = $yanzheng->token($token);
+            if ($result['Errno'] == 10000){
+                return json($result);
+            }else {
+                $id_card = input('Parameter');
+                $result = $yanzheng->id_card($id_card);
+                if ($result['Errno'] == 10000){
+                    return json($result);
+                }else {
+                    $res = Db::table('patients_tab')->where('card_id', $id_card)->find();
+                    if ($res) {
+                        $result['Errno'] = 0;
+                        $result['Errmsg'] = '已入组';
+                        return json($result);
+                    } else {
+                        $result['Errno'] = 0;
+                        $result['Errmsg'] = '未入组';
+                        return json($result);
+                    }
+                }
+            }
+        }
+    }
+
+    //入组-判断治疗卡（本地人员）
     public function judge(){
         if (request()->isPost()){
             $token = input('Token');
-            $Login = new Login();
-            $result = $Login->token($token);
+            $yanzheng = new Checking();
+            $result = $yanzheng->token($token);
             if ($result['Errno'] == 10000){
                 return json($result);
             }else {
                 $treat_num = input('Parameter');
-                $yanzheng = new Power();
                 $result = $yanzheng->treat_num($treat_num);
                 if ($result['Errno'] == 10000){
                     return json($result);
@@ -51,37 +80,83 @@ class Group extends Controller
                         }
                         $result['Errno'] = 0;
                         $result['Errmsg'] = '已入组';
+                        return json($result);
                     } else {
                         $result['Errno'] = 0;
                         $result['Errmsg'] = '未入组';
+                        return json($result);
                     }
                 }
             }
         }
-        return json($result);
     }
 
     //入组-新增(修改)
     public function add_update(){
         if (request()->isPost()){
             $token = input('Token');
-            $Login = new Login();
-            $result = $Login->token($token);
+            $yanzheng = new Checking();
+            $result = $yanzheng->token($token);
             if ($result['Errno'] == 10000 ){
                 return json($result);
             }else {
                 $id = input('id');
                 $data['name'] = input('Name');
+                if ($data['name'] == ''){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '姓名不能为空';
+                    return json($result);
+                }
                 $data['gender'] = input('Gender');
+                if ($data['gender'] == ''){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '性别不能为空';
+                    return json($result);
+                }
                 $data['treat_num'] = input('TreatNum');
+                if ($data['treat_num'] == ''){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '治疗卡号不能为空';
+                    return json($result);
+                }
                 $data['birthday'] = input('Birthday');
+                if ($data['birthday'] == ''){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '生日不能为空';
+                    return json($result);
+                }
                 $data['nation'] = input('Nation');
-                $data['card_id'] = input('CardID');
+                if ($data['nation'] == ''){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '民族不能为空';
+                    return json($result);
+                }
+                $data['card_id'] = strtoupper (input('CardID'));
+                if ($data['card_id'] == ''){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '身份证号不能为空';
+                    return json($result);
+                }
                 $data['occupation'] = input('Occupation');
                 $data['marriage'] = input('Marriage');
                 $data['education'] = input('Education');
+                if ($data['education'] == ''){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '文化程度不能为空';
+                    return json($result);
+                }
                 $data['phone'] = input('Phone');
+                if ($data['phone'] == ''){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '联系电话不能为空';
+                    return json($result);
+                }
                 $data['address'] = input('Address');
+                if ($data['address'] == ''){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '家庭住址不能为空';
+                    return json($result);
+                }
                 $data['relatives_name'] = input('RelativesName');
                 $data['relatives_phone'] = input('RelativesPhone');
                 $data['police_station'] = input('PoliceStation');
@@ -97,13 +172,17 @@ class Group extends Controller
                 $data['status'] = 3;
                 if ($id == ''){
                     $data['create_time'] = time();
-                    $res = Db::table('patients_tab')->insert($data);
-                    if ($res) {
-                        $result['Errno'] = 0;
-                        $result['Errmsg'] = '入组成功';
-                    } else {
+                    //检测账号是否存在
+                    $sql = Db::table('patients_tab')->where('treat_num', $data['treat_num'])->find();
+                    if ($sql) {
                         $result['Errno'] = 10000;
-                        $result['Errmsg'] = '入组失败';
+                        $result['Errmsg'] = '账号已存在';
+                    } else {
+                        $res = Db::table('patients_tab')->insert($data);
+                        if ($res) {
+                            $result['Errno'] = 0;
+                            $result['Errmsg'] = '添加成功';
+                        }
                     }
                 }else{
                     $res = Db::table('patients_tab')->where('id', $id)->update($data);

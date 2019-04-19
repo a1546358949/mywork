@@ -4,6 +4,7 @@
 namespace app\api\controller;
 
 
+use app\api\model\Checking;
 use think\Controller;
 use think\Db;
 
@@ -11,10 +12,12 @@ class Count extends Controller
 {
     //统计-服药记录查询
     public function record(){
+        $result = [];
         if (request()->isPost()){
             $token = input('Token');
-            $Login = new Login();
-            $result = $Login->token($token);
+            $yanzheng = new Checking();
+            $result = $yanzheng->token($token);
+            print_r($result);exit;
             if ($result['Errno'] == 10000){
                 return json($result);
             } else {
@@ -24,8 +27,7 @@ class Count extends Controller
                 $Pagelist = input('Pagelist');//每页条数
                 $token = input('Token');//登录识别码
                 $start = $PageNumber * $Pagelist;//开始条数
-                $getData = new Power();
-                $data = $getData->stops($token);//获取可查看工作点
+                $data = $yanzheng->stops($token);//获取可查看工作点
                 foreach ($data as $k => $v) {
                     $spot_id[] = $v['id'];
                 }
@@ -49,7 +51,6 @@ class Count extends Controller
                 }else{
                     $result['data']['RecordList'] = [];
                 }
-
                 $where1['spot_id'] = ['in', $spot_id];
                 $where1['create_time'] = ['between',"$onTime,$outTime"];
                 $num = Db::table('record_tab')->where($where1)->group('patient_id')->select();
@@ -60,8 +61,8 @@ class Count extends Controller
                 $result['data']['TotalNumber'] = count($sql);//总条数
                 $result['Errno'] = 0;
                 $result['Errmsg'] = '查询成功';
+                return json($result);
             }
-            return json($result);
         }
     }
 
@@ -69,11 +70,11 @@ class Count extends Controller
     public function situation(){
         if (request()->isPost()){
             $token = input('Token');
-            $Login = new Login();
-            $result = $Login->token($token);
-            if ($result['Errno'] == 10000){
+            $yanzheng = new Checking();
+            $result = $yanzheng->token($token);//验证token
+            if ($result['Errno'] == 10000){//验证失败
                 return json($result);
-            }else {
+            }else {//验证成功
                 $status = input('ClothesStart');//状态
                 if ($status == 0) {
 
@@ -84,8 +85,7 @@ class Count extends Controller
                 $Pagelist = input('Pagelist');//每页条数
                 $token = input('Token');//登录识别码
                 $start = $PageNumber * $Pagelist;//开始条数
-                $getData = new Power();
-                $data = $getData->stops($token);//获取可查看工作点
+                $data = $yanzheng->stops($token);//获取可查看工作点
                 foreach ($data as $k => $v) {
                     $spot_id[] = $v['id'];
                 }
@@ -121,16 +121,17 @@ class Count extends Controller
                     ->where($where)
                     ->count('p.id');
                 $result['TotalNumber'] = $sql;//总条数
+                return json($result);
             }
-            return json($result);
         }
     }
 
     //统计-病人详情
     public function details(){
+        $result = [];
         $token = input('Token');
-        $Login = new Login();
-        $result = $Login->token($token);
+        $yanzheng = new Checking();
+        $result = $yanzheng->token($token);
         if ($result['Errno'] == 10000){
             return json($result);
         }else{

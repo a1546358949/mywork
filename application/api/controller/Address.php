@@ -4,6 +4,7 @@
 namespace app\api\controller;
 
 
+use app\api\model\Checking;
 use think\Controller;
 use think\Db;
 
@@ -11,17 +12,17 @@ class Address extends Controller
 {
     //调用接口
     public function address(){
+        $result = [];
         if (request()->isPost()){
             $token = input('Token');
 
-            $Login = new Login();
-            $result = $Login->token($token);
+            $yanzheng = new Checking();
+            $result = $yanzheng->token($token);
 
             if ($result['Errno'] == 10000){
                 return json($result);
             }else{
-                $getData = new Power();
-                $data = $getData->stops($token);//获取可查看工作点
+                $data = $yanzheng->stops($token);//获取可查看工作点
 
                 foreach ($data as $k => $v) {
                     $spot_id[] = $v['id'];

@@ -4,6 +4,7 @@
 namespace app\api\controller;
 
 
+use app\api\model\Checking;
 use think\Controller;
 use think\Db;
 
@@ -11,15 +12,15 @@ class Account extends Controller
 {
     //账号管理-首页
     public function index(){
+        $result = [];
         if (request()->isPost()){
             $token = input('Token');
-            $Login = new Login();
-            $result = $Login->token($token);
+            $yanzheng = new Checking();
+            $result = $yanzheng->token($token);
             if ($result['Errno'] == 10000){
                 return json($result);
             }else {
-                $getData = new Power();
-                $data = $getData->stops($token);
+                $data = $yanzheng->stops($token);
                 foreach ($data as $k => $v){
                     $spot_id[] = $v['id'];
                 }
@@ -49,18 +50,40 @@ class Account extends Controller
     public function add_update(){
         if (request()->isPost()){
             $token = input('Token');
-            $Login = new Login();
-            $result = $Login->token($token);
+            $yanzheng = new Checking();
+            $result = $yanzheng->token($token);
             if ($result['Errno'] == 10000){
                 return json($result);
             }else {
                 $id = input('id');
                 $data['name'] = input('AccountName');//工作人员姓名
+                if ($data['name'] == ''){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '姓名不能为空';
+                    return json($result);
+                }
+                $data['password'] = input('Password');//工作人员密码
+                if ($data['password'] == ''){
+                    $data['password'] = '111111';
+                }
                 $data['on_spot'] = input('AccountPlace');//工作人员所在单位（非必填项）
                 $data['phone'] = input('AccountPhone');//工作人员联系电话
+                if ($data['phone'] == ''){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '手机号码不能为空';
+                    return json($result);
+                }elseif (strlen($data['phone']) !== 13){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '手机号码错误';
+                    return json($result);
+                }elseif (!is_numeric($data['phone'])){
+                    $result['Errno'] = 10000;
+                    $result['Errmsg'] = '手机号码错误';
+                    return json($result);
+                }
                 $data['status'] = input('AccountStart');//账号状态0（正常）1（冻结）
-                $data['hierarchy_power'] = input('HierarchyPower');//层级权限 (数据为布尔类型)
-                $data['account_power'] = input('AccountPower');//账号权限 (数据为布尔类型)
+                $data['hierarchy_power'] = input('HierarchyPower');//层级权限 (数据为数字类型)
+                $data['account_power'] = input('AccountPower');//账号权限 (数据为数字类型)
                 //查询所属治疗点id
                 $spot_id = Db::table('point')->where('spot_name', $data['on_spot'])->field('id')->find();
                 $data['spot_id'] = $spot_id['id'];
@@ -74,11 +97,13 @@ class Account extends Controller
                         if ($sql) {
                             $result['Errno'] = 10000;
                             $result['Errmsg'] = '账号已存在';
+                            return json($result);
                         } else {
                             $res = Db::table('admin')->insert($data);
                             if ($res) {
                                 $result['Errno'] = 0;
                                 $result['Errmsg'] = '添加成功';
+                                return json($result);
                             }
                         }
                     }else{//id不为空，此处为修改
@@ -87,34 +112,36 @@ class Account extends Controller
                         if ($res) {
                             $result['Errno'] = 0;
                             $result['Errmsg'] = '修改成功';
+                            return json($result);
                         }
                     }
                 } else {
                         $result['Errno'] = 10000;
                         $result['Errmsg'] = '所在单位不存在';
+                        return json($result);
+                }
+            }
+        }
+    }
+
+    //账号管理-冻结
+    public function delect(){
+        $result = [];
+        if (\request()->isPost()){
+            $token = input('Token');
+            $yanzheng = new Checking();
+            $result = $yanzheng->token($token);
+            if ($result['Errno'] == 1){
+                return json($result);
+            }else {
+                $id = input('id');
+                $res = Db::table('admin')->where('id', $id)->update(['status' => 1]);
+                if ($res) {
+                    $result['Errno'] = 0;
+                    $result['Errmsg'] = '冻结成功';
                 }
             }
         }
         return json($result);
     }
-
-    //账号管理-冻结
-    public function delect(){
-    if (\request()->isPost()){
-        $token = input('Token');
-        $Login = new Login();
-        $result = $Login->token($token);
-        if ($result['Errno'] == 1){
-            return json($result);
-        }else {
-            $id = input('id');
-            $res = Db::table('admin')->where('id', $id)->update(['status' => 1]);
-            if ($res) {
-                $result['Errno'] = 0;
-                $result['Errmsg'] = '冻结成功';
-            }
-        }
-    }
-    return json($result);
-}
 }
