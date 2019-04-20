@@ -16,8 +16,8 @@ class Login extends Controller
             $username = input('Username');
             $data = Db::table('admin')->where('phone',$username)->find();//查询账号信息
             if($data){
-                if($data['password'] == input('Password')){//验证密码
-                    if ($data['status'] == 0){
+                if ($data['status'] == 0){
+                    if($data['password'] == input('Password')){//验证密码
                         $time = time();
                         $token = md5($username.$time);//生成新token
                         $new['token'] = $token;
@@ -41,12 +41,12 @@ class Login extends Controller
                         }
                     }else{
                         $result['Errno'] =  10000;
-                        $result['Errmsg'] =  '账号已冻结';
+                        $result['Errmsg'] =  '账号或密码错误';
                         return json($result);
                     }
                 }else{
                     $result['Errno'] =  10000;
-                    $result['Errmsg'] =  '账号或密码错误';
+                    $result['Errmsg'] =  '账号已冻结';
                     return json($result);
                 }
             }else{

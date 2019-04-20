@@ -15,13 +15,12 @@ class Treatment extends Controller
         if (request()->isPost()){
             $treat_num = input('Parameter');
             $token = input('Token');
-            $yanzheng = new Checking();
-            $result = $yanzheng->token($token);
-
+            $check = new Checking();
+            $result = $check->token($token);
             if ($result['Errno'] == 10000){
                 return json($result);
             }else{
-                $data = $yanzheng->stops($token);
+                $data = $check->stops($token);
                 foreach ($data as $k => $v){
                     $spot_id[] = $v['id'];
                 }
@@ -39,7 +38,7 @@ class Treatment extends Controller
                         $result['Drug']['Nation'] = $res['nation'];
                         $result['Drug']['Img'] = $res['img'];
                         $result['Drug']['Parameter'] = $treat_num;
-                        $result['Start'] = $res['status'];
+                        $result['Drug']['Start'] = $res['status'];
                         if ($sql){
                             foreach ($sql as $k => $v){
                                 $result['MedicationLest'][$k]['Time'] = $v['create_time'];
@@ -84,8 +83,8 @@ class Treatment extends Controller
     public function password(){
         if (request()->isPost()){
             $token = input('Token');
-            $yanzheng = new Checking();
-            $result = $yanzheng->token($token);
+            $check = new Checking();
+            $result = $check->token($token);
             if ($result['Errno'] == 1){
                 return json($result);
             }else {
@@ -108,29 +107,29 @@ class Treatment extends Controller
     public function record(){
         if (request()->isPost()){
             $token = input('Token');
-            $yanzheng = new Checking();
-            $result = $yanzheng->token($token);
+            $check = new Checking();
+            $result = $check->token($token);
             if ($result['Errno'] == 1){
                 return json($result);
             }else {
                 $str = input('str');
                 $str1 = base64_encode($token.'1000');
                 $str2 = base64_encode($token.'2000');
-                if ($str == ''){
-                    $result['Errno'] = 10000;
-                    $result['Errmsg'] = '非法操作';
-                    return json($result);
-                }else{
-                    if ($str == $str1){
-                        $data['type'] = 1;
-                    }elseif ($str == $str2){
-                        $data['type'] = 2;
-                    }else{
-                        $result['Errno'] = 10000;
-                        $result['Errmsg'] = '非法操作';
-                        return json($result);
-                    }
-                }
+//                if ($str == ''){
+//                    $result['Errno'] = 10000;
+//                    $result['Errmsg'] = '非法操作';
+//                    return json($result);
+//                }else{
+//                    if ($str == $str1){
+//                        $data['type'] = 1;
+//                    }elseif ($str == $str2){
+//                        $data['type'] = 2;
+//                    }else{
+//                        $result['Errno'] = 10000;
+//                        $result['Errmsg'] = '非法操作';
+//                        return json($result);
+//                    }
+//                }
                 $treat_num = input('Parameter');//治疗卡号
                 $where = "card_id = $treat_num or treat_num = $treat_num";
                 $res = Db::table('patients_tab')->where($where)->field('id,name,spot_id')->find();
@@ -152,21 +151,28 @@ class Treatment extends Controller
                     return json($result);
                 }else{
                     $data['dose'] = input('Dose');//剂量
-                    $data['spot_id'] = input('SpotId');//服药地点id
+                    if (is_numeric($data['dose'])){
+                        $data['spot_name'] = input('Spotname');//服药地点id
 
-                    $sql = Db::table('point')->where('id',$data['spot_name'])->find();
-                    $data['spot_id'] = $sql['spot_id'];//服药地点
+                        $sql = Db::table('point')->where('spot_name',$data['spot_name'])->field('id')->find();
 
-                    $doc_ids = Db::table('admin')->where('token',$token)->field('id')->find();
-                    $data['doc_id'] = $doc_ids['id'];//给药医生id
-                    $save = Db::table('record_tab')->insert($data);
-                    if ($save) {
-                        $result['Errno'] = 0;
-                        $result['Errmsg'] = '操作成功';
-                        return json($result);
-                    } else {
+                        $data['spot_id'] = $sql['id'];//服药地点
+
+                        $doc_ids = Db::table('admin')->where('token',$token)->field('id')->find();
+                        $data['doc_id'] = $doc_ids['id'];//给药医生id
+                        $save = Db::table('record_tab')->insert($data);
+                        if ($save) {
+                            $result['Errno'] = 0;
+                            $result['Errmsg'] = '操作成功';
+                            return json($result);
+                        } else {
+                            $result['Errno'] = 10000;
+                            $result['Errmsg'] = '操作失败';
+                            return json($result);
+                        }
+                    }else{
                         $result['Errno'] = 10000;
-                        $result['Errmsg'] = '操作失败';
+                        $result['Errmsg'] = '剂量错误';
                         return json($result);
                     }
                 }

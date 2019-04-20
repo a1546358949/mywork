@@ -31,6 +31,7 @@ class Point extends Controller
                             $result['HierarchyList'][$k]['Spottask'] = $v['manager'];
                             $result['HierarchyList'][$k]['SpotPhone'] = $v['manager_phone'];
                             $result['HierarchyList'][$k]['SpotSuperior'] = $v['up_spot'];
+                            $result['HierarchyList'][$k]['Level'] = $v['level'];
                         }
                     }
                     $result['Errno'] = 0;

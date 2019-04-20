@@ -12,12 +12,10 @@ class Count extends Controller
 {
     //统计-服药记录查询
     public function record(){
-        $result = [];
         if (request()->isPost()){
             $token = input('Token');
             $yanzheng = new Checking();
             $result = $yanzheng->token($token);
-            print_r($result);exit;
             if ($result['Errno'] == 10000){
                 return json($result);
             } else {
